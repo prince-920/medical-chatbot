@@ -1,0 +1,1321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MediBot – AI Health Assistant</title>
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#f4f8f8; --panel:#ffffff; --ink:#15302f; --muted:#5b7573; --line:#dbe6e5;
+  --brand:#0f766e; --brand-ink:#ffffff; --brand-soft:#dff3f0;
+  --user:#0f766e; --user-ink:#fff; --bot:#ffffff;
+  --warn-bg:#fff4e5; --warn-ink:#8a4b00; --danger-bg:#fde8e8; --danger-ink:#9b1c1c;
+  --ok-bg:#e3f6ea; --ok-ink:#17692f; --info-bg:#e6f0fd; --info-ink:#1e4f9c;
+  --shadow:0 1px 2px rgba(16,48,47,.06),0 4px 16px rgba(16,48,47,.06);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0d1b1a; --panel:#132726; --ink:#e4f1ef; --muted:#93b0ad; --line:#24403e;
+    --brand:#2dd4bf; --brand-ink:#04211e; --brand-soft:#173a37;
+    --user:#14b8a6; --user-ink:#03201d; --bot:#132726;
+    --warn-bg:#3a2a10; --warn-ink:#ffcf8a; --danger-bg:#3b1717; --danger-ink:#ffb4b4;
+    --ok-bg:#12331f; --ok-ink:#8be0a8; --info-bg:#132a4a; --info-ink:#a9c9f5;
+    --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0d1b1a; --panel:#132726; --ink:#e4f1ef; --muted:#93b0ad; --line:#24403e;
+  --brand:#2dd4bf; --brand-ink:#04211e; --brand-soft:#173a37;
+  --user:#14b8a6; --user-ink:#03201d; --bot:#132726;
+  --warn-bg:#3a2a10; --warn-ink:#ffcf8a; --danger-bg:#3b1717; --danger-ink:#ffb4b4;
+  --ok-bg:#12331f; --ok-ink:#8be0a8; --info-bg:#132a4a; --info-ink:#a9c9f5;
+  --shadow:none;
+}
+html,body{height:100%;margin:0}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.5}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+button{font:inherit;color:inherit;cursor:pointer}
+h3{margin:0 0 4px;font-size:16px}
+.app{display:grid;grid-template-columns:290px 1fr;height:100%;min-height:0}
+
+/* ---------- Sidebar ---------- */
+.side{background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+.brand{display:flex;gap:10px;align-items:center;padding:16px 16px 12px}
+.logo{width:36px;height:36px;border-radius:10px;background:var(--brand);color:var(--brand-ink);display:grid;place-items:center;font-weight:700;font-size:20px;flex:none}
+.brand h1{font-size:17px;margin:0;line-height:1.2}
+.brand small{color:var(--muted);display:block;font-size:12px}
+.side-body{padding:0 16px 16px;overflow:auto;flex:1;min-height:0}
+.side h2{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:14px 0 8px}
+.pipeline{display:flex;flex-wrap:wrap;gap:6px;font-size:12px;color:var(--muted);align-items:center}
+.pipeline span{background:var(--brand-soft);color:var(--brand);padding:2px 8px;border-radius:99px;font-weight:600}
+.doc{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-bottom:6px;font-size:13px}
+.doc .n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.doc .c{color:var(--muted);font-size:12px}
+.doc button{border:0;background:transparent;color:var(--muted);font-size:16px;line-height:1;padding:2px 4px;border-radius:6px}
+.doc button:hover{color:var(--danger-ink);background:var(--danger-bg)}
+.upload{display:block;border:1.5px dashed var(--line);border-radius:12px;padding:14px;text-align:center;color:var(--muted);font-size:13px;cursor:pointer}
+.upload:hover{border-color:var(--brand);color:var(--brand)}
+.upload input{display:none}
+.kbstat{font-size:12px;color:var(--muted);margin-top:8px}
+.disc{margin:0 16px 16px;background:var(--warn-bg);color:var(--warn-ink);border-radius:10px;padding:10px 12px;font-size:12px}
+.scrim{display:none}
+
+/* ---------- Main + tabs ---------- */
+.main{display:flex;flex-direction:column;min-width:0;min-height:0;height:100%}
+.top{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--line);background:var(--panel)}
+.tabs{display:flex;gap:2px;overflow-x:auto;flex:1;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{border:0;background:transparent;padding:8px 12px;border-radius:10px;font-weight:600;color:var(--muted);white-space:nowrap;font-size:14px}
+.tab:hover{color:var(--ink)}
+.tab.active{background:var(--brand-soft);color:var(--brand)}
+.status{font-size:12px;color:var(--muted);white-space:nowrap}
+.status:before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--muted);margin-right:6px}
+.status.ok:before{background:#22c55e}
+.emg{border:0;background:#dc2626;color:#fff;font-weight:700;border-radius:10px;padding:8px 12px;font-size:13px;white-space:nowrap}
+.emg:hover{background:#b91c1c}
+.menu-btn{display:none}
+.view{flex:1;min-height:0;overflow:auto}
+.view[hidden]{display:none}
+.page{max-width:920px;margin:0 auto;padding:20px 16px 48px}
+.page>h2{margin:0 0 4px;font-size:22px}
+.page>.sub{color:var(--muted);margin:0 0 16px}
+
+/* ---------- Generic controls ---------- */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:var(--shadow)}
+.card .desc{color:var(--muted);font-size:13px;margin:0 0 8px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
+.grid.sm{grid-template-columns:repeat(auto-fill,minmax(180px,1fr))}
+label.f{display:block;font-size:12px;color:var(--muted);margin:10px 0 4px;font-weight:600}
+.in,select.in{width:100%;border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:var(--bg);color:var(--ink);font:inherit;outline:none}
+.in:focus{border-color:var(--brand)}
+textarea.in{resize:vertical;min-height:70px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn{border:0;background:var(--brand);color:var(--brand-ink);border-radius:10px;padding:9px 16px;font-weight:700}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.ghost{background:transparent;color:var(--brand);border:1px solid var(--line)}
+.btn.ghost:hover{border-color:var(--brand)}
+.btn.sm{padding:5px 10px;font-size:12px;border-radius:8px}
+.btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{border:0;background:transparent;padding:5px 12px;font-size:13px;color:var(--muted)}
+.seg button.on{background:var(--brand);color:var(--brand-ink);font-weight:700}
+.result{margin-top:12px;border-radius:12px;padding:12px;background:var(--brand-soft)}
+.result .big{font-size:28px;font-weight:800;line-height:1.1}
+.pill{display:inline-block;border-radius:99px;padding:2px 10px;font-size:12px;font-weight:700}
+.pill.ok{background:var(--ok-bg);color:var(--ok-ink)}
+.pill.warn{background:var(--warn-bg);color:var(--warn-ink)}
+.pill.bad{background:var(--danger-bg);color:var(--danger-ink)}
+.pill.info{background:var(--info-bg);color:var(--info-ink)}
+.note{font-size:12px;color:var(--muted);margin-top:8px}
+.hint{font-size:13px;color:var(--muted)}
+input[type=range]{width:100%;accent-color:var(--brand)}
+
+/* ---------- Chat ---------- */
+#v-chat{display:flex;flex-direction:column;overflow:hidden}
+.chatbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 16px;border-bottom:1px solid var(--line);background:var(--panel)}
+.chatbar select{border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);padding:5px 8px;font-size:13px}
+.chatbar .sp{flex:1}
+.chat{flex:1;overflow:auto;padding:20px 16px;min-height:0}
+.wrap{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+.msg{display:flex;flex-direction:column;max-width:90%}
+.msg.user{align-self:flex-end;align-items:flex-end}
+.bubble{padding:10px 14px;border-radius:16px;box-shadow:var(--shadow);word-wrap:break-word;overflow-wrap:anywhere}
+.user .bubble{background:var(--user);color:var(--user-ink);border-bottom-right-radius:4px;white-space:pre-wrap}
+.bot .bubble{background:var(--bot);border:1px solid var(--line);border-bottom-left-radius:4px}
+.bubble p{margin:0 0 8px}.bubble p:last-child{margin:0}
+.bubble ul,.bubble ol{margin:4px 0 8px;padding-left:22px}
+.cite{display:inline-block;background:var(--brand-soft);color:var(--brand);border-radius:6px;padding:0 5px;font-size:12px;font-weight:700}
+.alert{background:var(--danger-bg);color:var(--danger-ink);border-radius:10px;padding:10px 12px;font-size:13px;font-weight:600;margin-bottom:6px}
+details.src{margin-top:6px;font-size:12px;color:var(--muted)}
+details.src summary{cursor:pointer;user-select:none}
+.srcitem{border-left:3px solid var(--brand);padding:4px 8px;margin:6px 0;background:var(--brand-soft);border-radius:0 6px 6px 0;color:var(--ink)}
+.srcitem b{display:block}
+.actions{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap}
+.actions button{border:0;background:transparent;color:var(--muted);font-size:12px;padding:3px 8px;border-radius:8px}
+.actions button:hover{background:var(--brand-soft);color:var(--brand)}
+.actions button.on{color:var(--brand);font-weight:700}
+.follow{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.follow button{border:1px solid var(--line);background:var(--panel);border-radius:99px;padding:5px 12px;font-size:12.5px;text-align:left}
+.follow button:hover{border-color:var(--brand);color:var(--brand)}
+.typing{display:inline-flex;gap:4px}
+.typing i{width:6px;height:6px;border-radius:50%;background:var(--muted);animation:b 1s infinite}
+.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+@keyframes b{0%,60%,100%{opacity:.3;transform:none}30%{opacity:1;transform:translateY(-3px)}}
+.hero{text-align:center;padding:26px 10px 10px}
+.hero .logo{margin:0 auto 12px;width:52px;height:52px;font-size:28px;border-radius:14px}
+.hero h2{margin:0 0 6px;font-size:22px}
+.hero p{margin:0 auto;color:var(--muted);max-width:520px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:18px}
+.chip{border:1px solid var(--line);background:var(--panel);border-radius:99px;padding:7px 14px;font-size:13px}
+.chip:hover{border-color:var(--brand);color:var(--brand)}
+.composer{border-top:1px solid var(--line);background:var(--panel);padding:12px 16px}
+.composer .row{max-width:760px;margin:0 auto;display:flex;gap:8px;align-items:flex-end}
+.composer textarea{flex:1;resize:none;border:1px solid var(--line);border-radius:14px;padding:10px 14px;font:inherit;background:var(--bg);color:var(--ink);max-height:140px;min-height:44px;outline:none}
+.composer textarea:focus{border-color:var(--brand)}
+.mic{border:1px solid var(--line);background:transparent;border-radius:14px;width:44px;height:44px;font-size:18px}
+.mic.rec{background:#dc2626;color:#fff;border-color:#dc2626;animation:pl 1s infinite}
+@keyframes pl{50%{opacity:.6}}
+.send{border:0;background:var(--brand);color:var(--brand-ink);border-radius:14px;padding:0 18px;height:44px;font-weight:700;min-width:70px}
+.send.stop{background:#dc2626;color:#fff}
+.send:disabled{opacity:.5;cursor:not-allowed}
+.foot{max-width:760px;margin:6px auto 0;font-size:11px;color:var(--muted);text-align:center}
+
+/* ---------- Symptom checker ---------- */
+.symgroup{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.sym{border:1px solid var(--line);background:var(--panel);border-radius:99px;padding:7px 12px;font-size:13px}
+.sym:hover{border-color:var(--brand)}
+.sym.on{background:var(--brand);color:var(--brand-ink);border-color:var(--brand);font-weight:600}
+.sym.red{border-color:#f5b5b5}
+.sym.red.on{background:#dc2626;border-color:#dc2626;color:#fff}
+.urg{border-radius:14px;padding:14px 16px;font-weight:700;font-size:16px;margin-bottom:12px}
+.urg.emergency{background:#dc2626;color:#fff}
+.urg.urgent{background:#f97316;color:#fff}
+.urg.soon{background:var(--warn-bg);color:var(--warn-ink)}
+.urg.self_care{background:var(--ok-bg);color:var(--ok-ink)}
+.urg small{display:block;font-weight:500;opacity:.95;margin-top:2px;font-size:13.5px}
+.cond{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:8px;background:var(--panel)}
+.cond .h{display:flex;gap:8px;align-items:center;justify-content:space-between}
+.cond p{margin:4px 0 0;color:var(--muted);font-size:13.5px}
+.list{margin:6px 0 10px;padding-left:20px}
+.list li{margin:3px 0}
+.steps{display:flex;gap:6px;align-items:center;margin:0 0 8px;font-size:12px;color:var(--muted)}
+.skeleton{height:14px;border-radius:6px;background:linear-gradient(90deg,var(--line),var(--brand-soft),var(--line));background-size:200% 100%;animation:sk 1.2s infinite;margin:8px 0}
+@keyframes sk{to{background-position:-200% 0}}
+
+/* ---------- Tools ---------- */
+.gauge{height:10px;border-radius:99px;background:linear-gradient(90deg,#60a5fa 0 14%,#34d399 14% 40%,#fbbf24 40% 60%,#f87171 60% 100%);position:relative;margin:16px 0 6px}
+.gauge i{position:absolute;top:-4px;width:4px;height:18px;background:var(--ink);border-radius:2px;transform:translateX(-50%);transition:left .3s}
+.glasses{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+.glass{width:34px;height:44px;border:2px solid var(--brand);border-radius:4px 4px 10px 10px;background:transparent;position:relative;overflow:hidden;padding:0}
+.glass:after{content:"";position:absolute;left:0;right:0;bottom:0;height:0;background:#38bdf8;transition:height .25s}
+.glass.on:after{height:100%}
+.bar{height:8px;border-radius:99px;background:var(--line);overflow:hidden}
+.bar>div{height:100%;background:var(--brand);width:0;transition:width .3s}
+.zones{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+.zones td,.zones th{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left}
+.breath{width:150px;height:150px;border-radius:50%;background:var(--brand-soft);border:3px solid var(--brand);margin:16px auto 10px;display:grid;place-items:center;font-weight:700;color:var(--brand);text-align:center;transition:transform 4s ease-in-out;transform:scale(.7)}
+.tapbtn{width:100%;height:70px;font-size:18px;border-radius:14px;border:2px solid var(--brand);background:var(--brand-soft);color:var(--brand);font-weight:800;user-select:none;touch-action:manipulation}
+.tapbtn:active{transform:scale(.98)}
+.preview{max-width:100%;max-height:200px;border-radius:10px;margin-top:8px;display:block}
+.out{margin-top:10px}
+
+/* ---------- First aid ---------- */
+.aidcard{border:1px solid var(--line);background:var(--panel);border-radius:14px;padding:14px;text-align:left;display:flex;flex-direction:column;gap:4px}
+.aidcard:hover{border-color:var(--brand);transform:translateY(-1px)}
+.aidcard .ic{font-size:26px}
+.aidcard b{font-size:14.5px}
+.aidcard span{font-size:12px;color:var(--muted)}
+.aidcard.crit{border-color:#f5b5b5}
+.step{display:flex;gap:12px;padding:12px;border:1px solid var(--line);border-radius:12px;margin-bottom:8px;background:var(--panel);cursor:pointer;align-items:flex-start}
+.step .num{width:28px;height:28px;border-radius:50%;background:var(--line);display:grid;place-items:center;font-weight:800;font-size:13px;flex:none}
+.step.active{border-color:var(--brand);background:var(--brand-soft)}
+.step.active .num{background:var(--brand);color:var(--brand-ink)}
+.step.done{opacity:.6}
+.step.done .num{background:var(--ok-bg);color:var(--ok-ink)}
+.beat{width:84px;height:84px;border-radius:50%;background:#dc2626;margin:8px auto;display:grid;place-items:center;color:#fff;font-weight:800;transition:transform .09s;font-size:13px;text-align:center}
+.beat.pulse{transform:scale(1.22)}
+
+/* ---------- Health log ---------- */
+svg.chart{width:100%;height:auto;display:block}
+svg.chart .gl{stroke:var(--line);stroke-width:1}
+svg.chart .ln{fill:none;stroke:var(--brand);stroke-width:2.5;stroke-linejoin:round}
+svg.chart .dot{fill:var(--brand);stroke:var(--panel);stroke-width:2}
+svg.chart text{fill:var(--muted);font-size:11px}
+.entry{display:flex;gap:10px;align-items:center;border-bottom:1px solid var(--line);padding:8px 0}
+.entry .sev{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:800;color:#fff;flex:none}
+.entry .t{flex:1;min-width:0}
+.entry .t small{color:var(--muted);display:block}
+.entry button{border:0;background:transparent;color:var(--muted);font-size:16px}
+.entry button:hover{color:var(--danger-ink)}
+
+/* ---------- Modal + toast ---------- */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;place-items:center;z-index:50;padding:16px}
+.modal.show{display:grid}
+.modal .box{background:var(--panel);border-radius:18px;max-width:480px;width:100%;padding:20px;max-height:90%;overflow:auto}
+.modal h3{font-size:19px;color:#dc2626}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:99px;font-size:13px;opacity:0;pointer-events:none;transition:.25s;z-index:60;max-width:90%;text-align:center}
+.toast.show{opacity:1;transform:translateX(-50%)}
+
+@media (max-width:820px){
+  .app{grid-template-columns:1fr}
+  .side{position:fixed;inset:0 auto 0 0;width:min(320px,86vw);z-index:20;transform:translateX(-100%);transition:transform .2s;padding-top:env(safe-area-inset-top,0px)}
+  .side.open{transform:none}
+  .scrim.show{display:block;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:10}
+  .menu-btn{display:inline-block;border:1px solid var(--line);background:transparent;border-radius:8px;padding:6px 10px;font-size:13px}
+  .msg{max-width:96%}
+  .status{display:none}
+  .grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side" id="side">
+    <div class="brand">
+      <div class="logo">+</div>
+      <div><h1>MediBot</h1><small>AI health assistant</small></div>
+    </div>
+    <div class="side-body">
+      <h2>How answers are made</h2>
+      <div class="pipeline"><span>Chunk</span>→<span>BM25 index</span>→<span>Top-k retrieve</span>→<span>LLM answer</span></div>
+      <h2>Knowledge base</h2>
+      <div id="docs"></div>
+      <label class="upload">
+        <input type="file" id="file" accept=".pdf,.txt,.md" multiple>
+        + Add your own PDF / TXT / MD
+      </label>
+      <div class="kbstat" id="kbstat"></div>
+      <div class="kbstat" id="upmsg"></div>
+      <h2>Appearance</h2>
+      <div class="seg" id="themeSeg"><button data-t="auto" class="on">Auto</button><button data-t="light">Light</button><button data-t="dark">Dark</button></div>
+    </div>
+    <div class="disc"><b>Not medical advice.</b> MediBot shares general health information. It cannot diagnose. In an emergency, contact local emergency services.</div>
+  </aside>
+  <div class="scrim" id="scrim"></div>
+
+  <main class="main">
+    <div class="top">
+      <button class="menu-btn" id="menu">☰</button>
+      <nav class="tabs" id="tabs">
+        <button class="tab active" data-v="chat">💬 Chat</button>
+        <button class="tab" data-v="check">🩺 Symptom check</button>
+        <button class="tab" data-v="tools">🧰 Health tools</button>
+        <button class="tab" data-v="aid">🚑 First aid</button>
+        <button class="tab" data-v="log">📓 Health log</button>
+      </nav>
+      <span class="status" id="status">Connecting…</span>
+      <button class="emg" id="emgBtn">🚨 Emergency</button>
+    </div>
+
+    <!-- CHAT -->
+    <section class="view" id="v-chat">
+      <div class="chatbar">
+        <label class="hint" for="lang">Answer in</label>
+        <select id="lang"></select>
+        <label class="hint" for="detail">Detail</label>
+        <select id="detail">
+          <option value="simple">Simple</option>
+          <option value="standard">Standard</option>
+          <option value="detailed">Detailed</option>
+        </select>
+        <span class="sp"></span>
+        <button class="btn ghost sm" id="exportChat">⬇ Export chat</button>
+        <button class="btn ghost sm" id="clear">＋ New chat</button>
+      </div>
+      <div class="chat" id="chat"><div class="wrap" id="wrap"></div></div>
+      <div class="composer">
+        <div class="row">
+          <button class="mic" id="mic" title="Speak your question" hidden>🎤</button>
+          <textarea id="q" rows="1" placeholder="Ask a health question…"></textarea>
+          <button class="send" id="send">Send</button>
+        </div>
+        <div class="foot">Answers use the knowledge base in the sidebar and show their sources. Always confirm with a qualified clinician.</div>
+      </div>
+    </section>
+
+    <!-- SYMPTOM CHECK -->
+    <section class="view" id="v-check" hidden>
+      <div class="page">
+        <h2>Symptom check</h2>
+        <p class="sub">Pick what you're feeling. You'll get an urgency level, possible causes from the knowledge base, and what to do next. This is guidance, not a diagnosis.</p>
+        <div id="chkForm" class="card">
+          <div class="row2">
+            <div><label class="f" for="chkAge">Age group</label>
+              <select class="in" id="chkAge"><option>Adult (18–64)</option><option>Child (under 12)</option><option>Teen (12–17)</option><option>Older adult (65+)</option></select></div>
+            <div><label class="f" for="chkDur">How long?</label>
+              <select class="in" id="chkDur"><option>Less than a day</option><option>1–3 days</option><option>4–7 days</option><option>More than a week</option></select></div>
+          </div>
+          <label class="f">How bad is it overall? <b id="sevVal">4</b>/10</label>
+          <input type="range" id="chkSev" min="1" max="10" value="4">
+          <label class="f">Select all symptoms that apply</label>
+          <div class="symgroup" id="symBox"></div>
+          <label class="f" for="chkNote">Anything else? (optional: medicines, conditions, what triggered it)</label>
+          <textarea class="in" id="chkNote" placeholder="e.g. I have diabetes; started after eating out"></textarea>
+          <div class="btns">
+            <button class="btn" id="chkGo">Analyze symptoms</button>
+            <button class="btn ghost" id="chkReset">Reset</button>
+            <span class="hint" id="chkCount" style="align-self:center"></span>
+          </div>
+        </div>
+        <div id="chkOut" class="out"></div>
+      </div>
+    </section>
+
+    <!-- TOOLS -->
+    <section class="view" id="v-tools" hidden>
+      <div class="page">
+        <h2>Health tools</h2>
+        <p class="sub">Quick calculators and trackers. Everything runs on your device.</p>
+        <div class="grid" id="toolGrid">
+
+          <div class="card">
+            <h3>⚖️ BMI calculator</h3>
+            <div class="seg" id="bmiUnit"><button data-u="m" class="on">Metric</button><button data-u="i">Imperial</button></div>
+            <div id="bmiM" class="row2">
+              <div><label class="f" for="bmiCm">Height (cm)</label><input class="in" type="number" id="bmiCm" placeholder="170" min="50" max="250"></div>
+              <div><label class="f" for="bmiKg">Weight (kg)</label><input class="in" type="number" id="bmiKg" placeholder="65" min="10" max="400"></div>
+            </div>
+            <div id="bmiI" class="row2" hidden>
+              <div><label class="f">Height (ft / in)</label><div class="row2"><input class="in" type="number" id="bmiFt" placeholder="5" min="1" max="8"><input class="in" type="number" id="bmiIn" placeholder="7" min="0" max="11"></div></div>
+              <div><label class="f" for="bmiLb">Weight (lb)</label><input class="in" type="number" id="bmiLb" placeholder="150" min="20" max="900"></div>
+            </div>
+            <div id="bmiOut" class="result" hidden></div>
+          </div>
+
+          <div class="card">
+            <h3>🩸 Blood pressure check</h3>
+            <p class="desc">Enter a reading (mmHg) to see which range it falls in.</p>
+            <div class="row2">
+              <div><label class="f" for="bpS">Systolic (top)</label><input class="in" type="number" id="bpS" placeholder="120" min="50" max="300"></div>
+              <div><label class="f" for="bpD">Diastolic (bottom)</label><input class="in" type="number" id="bpD" placeholder="80" min="30" max="200"></div>
+            </div>
+            <div id="bpOut" class="result" hidden></div>
+          </div>
+
+          <div class="card">
+            <h3>💧 Water intake</h3>
+            <div class="row2">
+              <div><label class="f" for="wtW">Body weight</label><input class="in" type="number" id="wtW" placeholder="65" min="10" max="400"></div>
+              <div><label class="f" for="wtU">Unit</label><select class="in" id="wtU"><option value="kg">kg</option><option value="lb">lb</option></select></div>
+            </div>
+            <div class="row2">
+              <div><label class="f" for="wtA">Activity</label><select class="in" id="wtA"><option value="0">Light</option><option value="350">Moderate</option><option value="700">High</option></select></div>
+              <div><label class="f" for="wtH">Weather</label><select class="in" id="wtH"><option value="0">Normal</option><option value="500">Hot / humid</option></select></div>
+            </div>
+            <div id="wtOut" class="hint" style="margin-top:8px">Enter your weight to get a daily goal.</div>
+            <div class="glasses" id="glasses"></div>
+            <div class="bar"><div id="wtBar"></div></div>
+            <div class="note">Tap a glass each time you drink 250 ml. General estimate only. If you have kidney or heart conditions, follow your doctor's fluid advice.</div>
+          </div>
+
+          <div class="card">
+            <h3>❤️ Heart-rate zones &amp; pulse</h3>
+            <label class="f" for="hrAge">Your age</label>
+            <input class="in" type="number" id="hrAge" placeholder="25" min="5" max="110">
+            <div id="hrOut"></div>
+            <hr style="border:0;border-top:1px solid var(--line);margin:14px 0">
+            <p class="desc"><b>Measure your pulse:</b> find your pulse, then tap with every beat for 15 seconds.</p>
+            <button class="tapbtn" id="tapBtn">Tap on each beat</button>
+            <div id="tapOut" class="hint" style="margin-top:8px"></div>
+          </div>
+
+          <div class="card">
+            <h3>🌬️ Guided breathing</h3>
+            <p class="desc">Slow breathing can help you feel calmer. Follow the circle.</p>
+            <select class="in" id="brPat">
+              <option value="4,4,4,4">Box breathing (4-4-4-4)</option>
+              <option value="4,7,8,0">Relaxing 4-7-8</option>
+              <option value="4,0,6,0">Calm 4-6</option>
+            </select>
+            <div class="breath" id="brCircle"><span id="brTxt">Ready</span></div>
+            <div class="hint" style="text-align:center" id="brInfo">&nbsp;</div>
+            <div class="btns" style="justify-content:center"><button class="btn" id="brGo">Start</button></div>
+          </div>
+
+          <div class="card" id="medCard" hidden>
+            <h3>💊 Medicine label reader</h3>
+            <p class="desc">Take a photo of a medicine box or strip. I'll explain what's printed in plain language.</p>
+            <input class="in" type="file" id="medFile" accept="image/*">
+            <img class="preview" id="medPrev" alt="" hidden>
+            <div class="btns"><button class="btn" id="medGo" disabled>Explain this label</button></div>
+            <div class="out bubble" id="medOut" hidden style="border:1px solid var(--line)"></div>
+            <div class="note">Always confirm with a pharmacist or doctor before taking any medicine.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FIRST AID -->
+    <section class="view" id="v-aid" hidden>
+      <div class="page">
+        <div id="aidList">
+          <h2>First-aid guides</h2>
+          <p class="sub">Step-by-step help. Tap a guide, then follow the steps one at a time. For anything serious, call emergency services first.</p>
+          <div class="grid sm" id="aidGrid"></div>
+        </div>
+        <div id="aidDetail" hidden></div>
+      </div>
+    </section>
+
+    <!-- HEALTH LOG -->
+    <section class="view" id="v-log" hidden>
+      <div class="page">
+        <h2>Health log</h2>
+        <p class="sub">Track symptoms, mood, sleep or pain over time. Data stays in this browser. Summarize it for your next doctor visit.</p>
+        <div class="grid">
+          <div class="card">
+            <h3>Add an entry</h3>
+            <label class="f" for="lgItem">What are you tracking?</label>
+            <input class="in" type="text" id="lgItem" list="lgItems" placeholder="e.g. Headache, Mood, Sleep quality" maxlength="60">
+            <datalist id="lgItems"></datalist>
+            <label class="f">Severity / level: <b id="lgVal">5</b>/10</label>
+            <input type="range" id="lgSev" min="1" max="10" value="5">
+            <label class="f" for="lgNote">Note (optional)</label>
+            <input class="in" type="text" id="lgNote" placeholder="Triggers, medicines taken, context…" maxlength="200">
+            <div class="btns"><button class="btn" id="lgAdd">Add entry</button></div>
+          </div>
+          <div class="card">
+            <h3>Trend</h3>
+            <select class="in" id="lgSel"></select>
+            <div id="lgChart" style="margin-top:8px"></div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:14px">
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:space-between">
+            <h3 style="margin:0">Entries</h3>
+            <div class="btns" style="margin:0">
+              <button class="btn ghost sm" id="lgCsv">⬇ Export CSV</button>
+              <button class="btn sm" id="lgSum">✨ Summarize for my doctor</button>
+            </div>
+          </div>
+          <div id="lgList"></div>
+        </div>
+        <div class="card" id="lgSumBox" style="margin-top:14px" hidden>
+          <h3>Summary for your doctor</h3>
+          <div id="lgSumOut" class="bubble" style="box-shadow:none;padding:0"></div>
+          <div class="btns"><button class="btn ghost sm" id="lgSumCopy">Copy</button><button class="btn ghost sm" id="lgSumDl">⬇ Save .txt</button></div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="modal" id="emgModal">
+  <div class="box">
+    <h3>🚨 Emergency help</h3>
+    <p><b>Call your local emergency number now</b> (for example 112, 911 or 999, depending on your country) if someone:</p>
+    <ul class="list">
+      <li>is unresponsive or not breathing normally</li>
+      <li>has chest pain or pressure, or stroke signs (face droop, arm weakness, slurred speech)</li>
+      <li>is choking, has severe bleeding, a seizure, or a serious allergic reaction</li>
+      <li>is thinking about harming themselves</li>
+    </ul>
+    <p class="hint">Stay on the line, give the exact location, and follow the dispatcher's instructions. Don't drive yourself if you suspect a heart attack or stroke.</p>
+    <div class="btns">
+      <button class="btn" id="emgAid">Open first-aid guides</button>
+      <button class="btn ghost" id="emgClose">Close</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const BUILTIN = [
+["Common cold","The common cold is a viral infection of the nose and throat. Symptoms include runny or blocked nose, sneezing, sore throat, mild cough and sometimes a low fever, usually lasting 7 to 10 days. Antibiotics do not work on colds. Rest, fluids, saline nasal rinses, throat lozenges and simple pain relievers can ease symptoms. See a doctor if symptoms last more than 10 days, a high fever develops, or breathing becomes difficult."],
+["Influenza (flu)","Influenza is a contagious respiratory illness. It typically starts suddenly with fever, chills, body aches, headache, fatigue, dry cough and sore throat. Most healthy people recover within one to two weeks with rest and fluids. Antiviral medicines can help if started early, especially in people at higher risk such as older adults, pregnant women, young children and people with chronic illness. Yearly vaccination reduces the risk. Seek care for trouble breathing, chest pain, confusion, or symptoms that improve then return worse."],
+["Hypertension (high blood pressure)","Hypertension means persistently high blood pressure, commonly 130/80 mmHg or above on repeated readings. It often has no symptoms, which is why regular checks matter. Untreated, it raises the risk of heart attack, stroke, kidney disease and vision problems. Management includes reducing salt, regular exercise, a healthy weight, limiting alcohol, not smoking, and medication when prescribed. Very high readings with severe headache, chest pain, confusion or vision changes need urgent medical attention."],
+["Type 2 diabetes","Type 2 diabetes occurs when the body resists insulin or does not make enough, causing high blood sugar. Common symptoms are increased thirst, frequent urination, tiredness, blurred vision, slow-healing wounds and frequent infections, though some people have no symptoms early on. Management includes a balanced diet, physical activity, weight control, blood sugar monitoring and medication or insulin as prescribed. Long-term high sugar can damage eyes, kidneys, nerves and the heart, so regular check-ups are important."],
+["Asthma","Asthma is a chronic condition in which the airways become inflamed and narrow. Symptoms include wheezing, coughing (especially at night or with exercise), chest tightness and shortness of breath. Common triggers are allergens, cold air, smoke, exercise and respiratory infections. Treatment usually includes a quick-relief (reliever) inhaler and, for many people, a daily controller inhaler. Severe difficulty breathing, blue lips, or a reliever inhaler that is not helping is an emergency."],
+["Migraine","Migraine is a neurological condition causing recurring, often one-sided, throbbing headaches that may come with nausea, vomiting and sensitivity to light and sound. Some people experience an aura, such as flashing lights, beforehand. Attacks can last from 4 to 72 hours. Common triggers include stress, poor sleep, skipped meals, certain foods and hormonal changes. Resting in a dark quiet room and taking medication early may help. A sudden, severe 'worst ever' headache, or headache with weakness, confusion or fever and stiff neck needs urgent care."],
+["Iron deficiency anemia","Iron deficiency anemia happens when the body lacks enough iron to make hemoglobin. Symptoms include tiredness, weakness, pale skin, shortness of breath, dizziness, headaches, cold hands and feet, brittle nails and sometimes cravings for non-food items such as ice. Causes include heavy periods, poor diet, pregnancy, and blood loss from the digestive tract. Diagnosis is by blood tests. Treatment involves iron supplements and iron-rich foods such as lentils, spinach, red meat and fortified cereals, plus treating the underlying cause."],
+["Dehydration","Dehydration occurs when the body loses more fluid than it takes in. Signs include thirst, dry mouth, dark yellow urine, reduced urination, tiredness, dizziness and headache. In children and older adults it can become serious quickly. Mild dehydration is treated by drinking water or oral rehydration solution in small, frequent sips. Seek medical help for confusion, very little urine, rapid heartbeat, fainting, or if vomiting or diarrhea prevents keeping fluids down."],
+["Gastroenteritis and food poisoning","Gastroenteritis is inflammation of the stomach and intestines, usually from a virus or contaminated food or water. Symptoms include nausea, vomiting, watery diarrhea, stomach cramps and sometimes fever. Most cases resolve in a few days. The main treatment is replacing fluids and salts with oral rehydration solution, and eating bland foods as tolerated. See a doctor for blood in the stool, high fever, signs of dehydration, symptoms lasting more than a few days, or if the patient is an infant, elderly or pregnant."],
+["Urinary tract infection (UTI)","A urinary tract infection is a bacterial infection of the bladder or urinary tract. Symptoms include a burning feeling when urinating, frequent urges to urinate, cloudy or strong-smelling urine, and lower abdominal discomfort. Fever, back or flank pain, and vomiting can suggest the infection has reached the kidneys and needs prompt medical care. UTIs are usually treated with antibiotics prescribed by a clinician. Drinking plenty of fluids and urinating regularly may help prevent them."],
+["Fever","A fever is a body temperature of about 38 °C (100.4 °F) or higher and is usually a sign the body is fighting an infection. Rest, fluids and light clothing help, and paracetamol (acetaminophen) or ibuprofen may be used according to the label. Aspirin should not be given to children. Seek medical care for a fever in a baby under 3 months, a fever above 40 °C (104 °F), fever lasting more than 3 days, or fever with stiff neck, rash, confusion, seizures or trouble breathing."],
+["Heart attack warning signs","Heart attack symptoms include chest pain, pressure, squeezing or tightness that may spread to the arm, jaw, neck or back, along with shortness of breath, cold sweat, nausea and light-headedness. Women, older adults and people with diabetes may have less typical symptoms such as fatigue or indigestion-like discomfort. A suspected heart attack is a medical emergency: call emergency services immediately rather than driving yourself, and stay calm and seated while waiting for help."],
+["Stroke warning signs (FAST)","Stroke happens when blood flow to part of the brain is blocked or a vessel bleeds. The FAST checklist helps recognise it: Face drooping, Arm weakness, Speech difficulty, Time to call emergency services. Other signs include sudden confusion, vision loss, severe headache, loss of balance or numbness on one side. Treatment works best when given within hours, so never wait to see if symptoms pass."],
+["Allergic reactions and anaphylaxis","Mild allergic reactions cause itching, hives, sneezing or a runny nose and may improve with antihistamines. Anaphylaxis is a severe, life-threatening reaction with swelling of the face or throat, difficulty breathing, wheezing, a rapid weak pulse, dizziness or fainting, and often hives or vomiting. It requires immediate emergency care. People with known severe allergies should carry an adrenaline (epinephrine) auto-injector and use it as instructed, then call emergency services."],
+["Minor burns first aid","For a minor burn, cool the area under cool running water for about 20 minutes as soon as possible. Remove rings or tight items near the burn before swelling starts. Cover loosely with a clean non-fluffy dressing or cling film. Do not apply ice, butter, toothpaste or burst blisters. Pain relievers can help. Seek medical care for burns larger than the person's palm, burns on the face, hands, feet, genitals or joints, deep or white or charred skin, chemical or electrical burns, and any burn in a young child or older adult."],
+["Sprains and strains","A sprain is a stretched or torn ligament and a strain involves muscle or tendon. Typical symptoms are pain, swelling, bruising and difficulty moving the joint. Early care follows the PRICE approach: Protect, Rest, apply Ice for 15 to 20 minutes several times a day, Compress with a bandage, and Elevate. See a clinician if you cannot bear weight, there is obvious deformity, numbness, or no improvement after a few days, as a fracture may be present."],
+["Depression","Depression is more than sadness. It involves a persistently low mood or loss of interest lasting two weeks or more, along with changes in sleep or appetite, low energy, difficulty concentrating, feelings of worthlessness or guilt, and sometimes thoughts of death or self-harm. It is a treatable medical condition, and talking therapy, medication, exercise and social support all help. Anyone having thoughts of harming themselves should contact a crisis line or emergency services right away and reach out to someone they trust."],
+["Hypothyroidism","Hypothyroidism means the thyroid gland does not make enough thyroid hormone. Symptoms include fatigue, weight gain, feeling cold, constipation, dry skin, hair thinning, muscle aches, low mood and a slow heart rate. It is diagnosed with blood tests measuring TSH and thyroid hormones. Treatment is usually daily levothyroxine tablets, taken consistently, with periodic blood tests to adjust the dose."],
+["Dengue fever","Dengue is a mosquito-borne viral illness. It causes sudden high fever, severe headache, pain behind the eyes, muscle and joint pain, nausea and rash. Warning signs of severe dengue, usually appearing as the fever settles, include severe abdominal pain, persistent vomiting, bleeding gums or nose, blood in vomit or stool, and extreme restlessness or drowsiness, and need immediate hospital care. Treatment is supportive with fluids and rest, and paracetamol for fever. Aspirin and ibuprofen should be avoided because of bleeding risk. Preventing mosquito bites and removing standing water reduces spread."],
+["Vitamin D deficiency","Vitamin D helps the body absorb calcium for healthy bones and supports muscle and immune function. Deficiency can cause bone pain, muscle weakness, fatigue and in severe cases rickets in children or osteomalacia in adults. Sources include sensible sun exposure, oily fish, egg yolks and fortified foods. Diagnosis is by a blood test, and treatment is usually vitamin D supplements at a dose advised by a clinician."],
+["Sore throat","Most sore throats are caused by viruses and improve within a week. Warm fluids, lozenges, gargling with warm salt water and simple pain relievers can help. Bacterial infection such as strep throat is more likely with fever, swollen tonsils with white patches, swollen neck glands and no cough, and may need antibiotics after a clinician's assessment. Seek urgent care for difficulty breathing or swallowing, drooling, or inability to open the mouth fully."],
+["High cholesterol","High cholesterol usually has no symptoms and is found with a blood test. Raised LDL ('bad') cholesterol increases the risk of heart disease and stroke. Lifestyle changes include eating less saturated and trans fat, more fibre, vegetables and fruit, regular exercise, weight loss if needed, and stopping smoking. Doctors may prescribe statins for people at higher cardiovascular risk."]
+].map(([title,text],i)=>({id:"b"+i,title,text,builtin:true}));
+
+
+/* ============ Shared helpers ============ */
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const store={
+  get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+};
+let toastT;
+function toast(msg){const t=$("toast");t.textContent=msg;t.classList.add("show");clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove("show"),2600)}
+async function copyText(text){
+  try{await navigator.clipboard.writeText(text);toast("Copied to clipboard");return}catch(e){}
+  try{const ta=document.createElement("textarea");ta.value=text;ta.style.position="fixed";ta.style.opacity="0";document.body.append(ta);ta.select();document.execCommand("copy");ta.remove();toast("Copied to clipboard")}
+  catch(e){toast("Couldn't copy on this device")}
+}
+function md(text){
+  const lines=esc(text).split("\n");let html="",list=null;
+  const inline=s=>s.replace(/\*\*(.+?)\*\*/g,"<b>$1</b>").replace(/\[(\d+)\]/g,'<span class="cite">$1</span>');
+  const close=()=>{if(list){html+="</"+list+">";list=null}};
+  for(const raw of lines){
+    const l=raw.trim();let m;
+    if((m=l.match(/^[-*•]\s+(.*)/))){if(list!=="ul"){close();html+="<ul>";list="ul"}html+="<li>"+inline(m[1])+"</li>"}
+    else if((m=l.match(/^\d+[.)]\s+(.*)/))){if(list!=="ol"){close();html+="<ol>";list="ol"}html+="<li>"+inline(m[1])+"</li>"}
+    else if(!l){close()}
+    else{close();html+="<p>"+inline(l.replace(/^#+\s*/,""))+"</p>"}
+  }
+  close();return html;
+}
+
+/* ============ Preferences / theme ============ */
+const LANGS=[["English","English","en-US"],["हिन्दी (Hindi)","Hindi","hi-IN"],["اردو (Urdu)","Urdu","ur-PK"],["Español","Spanish","es-ES"],["Français","French","fr-FR"],["العربية (Arabic)","Arabic","ar-SA"],["বাংলা (Bengali)","Bengali","bn-IN"],["தமிழ் (Tamil)","Tamil","ta-IN"]];
+const prefs=Object.assign({lang:"English",detail:"standard",theme:"auto"},store.get("medibot_prefs",{}));
+function savePrefs(){store.set("medibot_prefs",prefs)}
+function applyTheme(){
+  const r=document.documentElement;
+  if(prefs.theme==="auto")r.removeAttribute("data-theme");else r.setAttribute("data-theme",prefs.theme);
+  document.querySelectorAll("#themeSeg button").forEach(b=>b.classList.toggle("on",b.dataset.t===prefs.theme));
+}
+document.querySelectorAll("#themeSeg button").forEach(b=>b.onclick=()=>{prefs.theme=b.dataset.t;savePrefs();applyTheme()});
+const langSel=$("lang");
+LANGS.forEach(([label,name])=>{const o=document.createElement("option");o.value=name;o.textContent=label;langSel.append(o)});
+langSel.value=prefs.lang;$("detail").value=prefs.detail;
+langSel.onchange=()=>{prefs.lang=langSel.value;savePrefs()};
+$("detail").onchange=()=>{prefs.detail=$("detail").value;savePrefs()};
+const langCode=()=>(LANGS.find(l=>l[1]===prefs.lang)||LANGS[0])[2];
+
+/* ============ Retrieval: chunking + BM25 ============ */
+const STOP=new Set("a an and are as at be but by for from has have i if in into is it its me my of on or our so that the their them then there these they this to was we were what when where which who why will with you your can do does how about should would could may might than also very just not no yes".split(" "));
+function tok(s){
+  return s.toLowerCase().replace(/[^a-z0-9\u00c0-\u024f]+/g," ").split(" ").filter(w=>w.length>1&&!STOP.has(w)).map(w=>{
+    if(w.length>5&&w.endsWith("ies"))return w.slice(0,-3)+"y";
+    if(w.length>4&&w.endsWith("s")&&!w.endsWith("ss"))return w.slice(0,-1);
+    if(w.length>6&&w.endsWith("ing"))return w.slice(0,-3);
+    return w;
+  });
+}
+function chunkText(text,size=600,overlap=80){
+  text=text.replace(/\s+/g," ").trim();
+  const out=[];let i=0;
+  while(i<text.length){
+    let end=Math.min(i+size,text.length);
+    if(end<text.length){const sp=text.lastIndexOf(". ",end);if(sp>i+size*0.5)end=sp+1}
+    out.push(text.slice(i,end).trim());
+    if(end>=text.length)break;
+    i=Math.max(end-overlap,i+1);
+  }
+  return out.filter(c=>c.length>30);
+}
+let userDocs=store.get("medibot_docs",[]);
+let chunks=[],idf=new Map(),avgLen=1;
+function rebuildIndex(){
+  chunks=[];
+  for(const d of [...BUILTIN,...userDocs]){
+    const parts=d.builtin?[d.text]:chunkText(d.text);
+    for(const p of parts){
+      const t=tok(d.title+" "+p);const tf=new Map();
+      t.forEach(w=>tf.set(w,(tf.get(w)||0)+1));
+      chunks.push({docTitle:d.title,text:p,tf,len:t.length||1});
+    }
+  }
+  const df=new Map();
+  chunks.forEach(c=>c.tf.forEach((_,w)=>df.set(w,(df.get(w)||0)+1)));
+  const N=chunks.length||1;
+  idf=new Map();df.forEach((n,w)=>idf.set(w,Math.log(1+(N-n+.5)/(n+.5))));
+  avgLen=chunks.reduce((s,c)=>s+c.len,0)/N||1;
+  renderDocs();
+}
+function retrieve(query,k=4){
+  const q=[...new Set(tok(query))];if(!q.length)return[];
+  const k1=1.5,b=.75;
+  return chunks.map(c=>{
+    let s=0;
+    for(const w of q){const f=c.tf.get(w);if(!f)continue;s+=(idf.get(w)||0)*(f*(k1+1))/(f+k1*(1-b+b*c.len/avgLen))}
+    return{c,s};
+  }).filter(x=>x.s>0.5).sort((a,b)=>b.s-a.s).slice(0,k);
+}
+function renderDocs(){
+  const box=$("docs");box.innerHTML="";
+  const mk=(name,count,rm)=>{
+    const d=document.createElement("div");d.className="doc";
+    const n=document.createElement("div");n.className="n";n.textContent=name;
+    const c=document.createElement("span");c.className="c";c.textContent=count;
+    d.append(n,c);
+    if(rm){const x=document.createElement("button");x.textContent="×";x.title="Remove";x.onclick=rm;d.append(x)}
+    box.append(d);
+  };
+  mk("General health topics",BUILTIN.length+" topics");
+  userDocs.forEach(d=>{
+    const cnt=chunks.filter(c=>c.docTitle===d.title).length;
+    mk(d.title,cnt+" chunks",()=>{userDocs=userDocs.filter(x=>x.id!==d.id);store.set("medibot_docs",userDocs);rebuildIndex()});
+  });
+  $("kbstat").textContent=chunks.length+" searchable chunks indexed";
+}
+
+/* ============ Uploads (PDF/TXT/MD) ============ */
+let pdfReady=null;
+const loadScript=src=>new Promise((res,rej)=>{const s=document.createElement("script");s.src=src;s.onload=res;s.onerror=()=>rej(new Error("Could not load PDF reader"));document.head.append(s)});
+function ensurePdf(){
+  if(!pdfReady){
+    const base="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/";
+    pdfReady=loadScript(base+"pdf.min.js").then(()=>loadScript(base+"pdf.worker.min.js")).then(()=>{window.pdfjsLib.GlobalWorkerOptions.workerSrc=base+"pdf.worker.min.js"});
+  }
+  return pdfReady;
+}
+async function readPdf(file){
+  await ensurePdf();
+  const pdf=await window.pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;
+  let out="";
+  for(let p=1;p<=pdf.numPages;p++){
+    const tc=await (await pdf.getPage(p)).getTextContent();
+    out+=tc.items.map(i=>i.str).join(" ")+"\n";
+    $("upmsg").textContent=`Reading ${file.name}: page ${p}/${pdf.numPages}`;
+  }
+  return out;
+}
+$("file").addEventListener("change",async e=>{
+  const files=[...e.target.files];e.target.value="";
+  for(const f of files){
+    try{
+      $("upmsg").textContent="Reading "+f.name+"…";
+      const text=/\.pdf$/i.test(f.name)?await readPdf(f):await f.text();
+      if(text.trim().length<50){$("upmsg").textContent=f.name+": no readable text found (scanned PDFs aren't supported).";continue}
+      userDocs=userDocs.filter(d=>d.title!==f.name);
+      userDocs.push({id:"u"+Date.now()+Math.random(),title:f.name,text});
+      store.set("medibot_docs",userDocs);rebuildIndex();
+      $("upmsg").textContent="Added "+f.name+" to the knowledge base.";
+    }catch(err){$("upmsg").textContent="Could not read "+f.name+": "+(err.message||err)}
+  }
+});
+
+/* ============ Capabilities (AI, downloads) ============ */
+let sample=null,dl=null,imgOK=false;
+function needAI(){
+  if(sample)return true;
+  toast("The AI isn't available in this view. Open the page inside claude.ai.");return false;
+}
+function aiError(e){
+  const c=e&&e.code;
+  return c==="not_granted"?"Permission to use the AI was declined. Reload and allow it to continue."
+    :c==="rate_limited"?"Too many requests at once. Please wait a moment and try again."
+    :c==="invalid_json"?"I couldn't format that result. Please try again."
+    :"Something went wrong. Please try again.";
+}
+async function saveFile(filename,data){
+  if(dl){
+    try{await dl.save({filename,data});toast("Saved");return}
+    catch(e){if(e&&e.code==="declined")return}
+  }
+  await copyText(data);
+}
+const langLine=()=>prefs.lang==="English"?"":`Write all user-facing text in ${prefs.lang}.`;
+
+/* ============ Navigation ============ */
+function showView(v){
+  document.querySelectorAll(".view").forEach(s=>s.hidden=s.id!=="v-"+v);
+  document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active",t.dataset.v===v));
+  if(v==="log")renderLog();
+  if(v==="chat")scrollDown();
+  $("side").classList.remove("open");$("scrim").classList.remove("show");
+}
+document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>showView(t.dataset.v));
+$("menu").onclick=()=>{$("side").classList.add("open");$("scrim").classList.add("show")};
+$("scrim").onclick=()=>{$("side").classList.remove("open");$("scrim").classList.remove("show")};
+$("emgBtn").onclick=()=>$("emgModal").classList.add("show");
+$("emgClose").onclick=()=>$("emgModal").classList.remove("show");
+$("emgModal").onclick=e=>{if(e.target===$("emgModal"))$("emgModal").classList.remove("show")};
+$("emgAid").onclick=()=>{$("emgModal").classList.remove("show");showView("aid");openAid("cpr")};
+document.addEventListener("keydown",e=>{if(e.key==="Escape")$("emgModal").classList.remove("show")});
+
+/* ============ CHAT ============ */
+const RED=[/chest (pain|pressure|tight)/i,/can'?t breathe|cannot breathe|trouble breathing|difficulty breathing|shortness of breath/i,/stroke|face droop|slurred speech/i,/unconscious|not breathing|seizure/i,/severe bleeding|won'?t stop bleeding/i,/overdose|poison/i,/suicid|kill myself|end my life|self[- ]harm|hurt myself/i];
+const redFlag=q=>RED.some(r=>r.test(q));
+let busy=false,history=[],transcript=[],ctl=null,lastText="",msgEls=[];
+const scrollDown=()=>{const c=$("chat");c.scrollTop=c.scrollHeight};
+
+function addMsg(role){
+  const m=document.createElement("div");m.className="msg "+role;
+  const b=document.createElement("div");b.className="bubble";b.dir="auto";
+  m.append(b);$("wrap").append(m);scrollDown();return{m,b};
+}
+function hero(){
+  const w=$("wrap");w.innerHTML="";msgEls=[];
+  const h=document.createElement("div");h.className="hero";
+  h.innerHTML='<div class="logo">+</div><h2>How can I help with your health question?</h2><p>I search a medical knowledge base and answer using only what I find, showing you the sources. Try the symptom checker, health tools and first-aid guides in the tabs above.</p>';
+  const chips=document.createElement("div");chips.className="chips";
+  ["What are the symptoms of iron deficiency anemia?","How do I treat a minor burn?","What are the warning signs of a stroke?","When should I worry about a fever?","How is type 2 diabetes managed?"].forEach(t=>{
+    const c=document.createElement("button");c.className="chip";c.textContent=t;c.onclick=()=>ask(t);chips.append(c);
+  });
+  h.append(chips);w.append(h);
+}
+function splitFollow(t){
+  const i=t.indexOf("FOLLOWUPS");
+  if(i<0)return{body:t.trimEnd(),follow:[]};
+  const body=t.slice(0,i).trimEnd();
+  const rest=t.slice(i).replace(/^FOLLOWUPS:?/,"");
+  const follow=rest.split("|").map(s=>s.replace(/^[\s\-*\d.)]+/,"").trim()).filter(s=>s.length>3&&s.length<140).slice(0,3);
+  return{body,follow};
+}
+function speak(text,btn){
+  if(!("speechSynthesis" in window)){toast("Read-aloud isn't supported here");return}
+  if(speechSynthesis.speaking){speechSynthesis.cancel();btn.classList.remove("on");return}
+  const u=new SpeechSynthesisUtterance(text.replace(/\[\d+\]/g,"").replace(/\*\*/g,"").replace(/^[-*•]\s+/gm,""));
+  u.lang=langCode();u.onend=u.onerror=()=>btn.classList.remove("on");
+  btn.classList.add("on");speechSynthesis.speak(u);
+}
+function makeActions(bot,text,isLast){
+  const a=document.createElement("div");a.className="actions";
+  const add=(label,fn,title)=>{const b=document.createElement("button");b.textContent=label;if(title)b.title=title;b.onclick=()=>fn(b);a.append(b);return b};
+  add("📋 Copy",()=>copyText(text));
+  add("🔊 Listen",b=>speak(text,b));
+  const up=add("👍",()=>{up.classList.toggle("on");dn.classList.remove("on");toast("Thanks for the feedback")},"Helpful");
+  const dn=add("👎",()=>{dn.classList.toggle("on");up.classList.remove("on");toast("Thanks. Try rephrasing or adding your own documents.")},"Not helpful");
+  if(isLast)add("↻ Regenerate",()=>regenerate());
+  bot.m.append(a);
+}
+function regenerate(){
+  if(busy||!lastText)return;
+  const last=msgEls.pop();
+  if(last){last.user.remove();last.bot.m.remove()}
+  history.splice(-2);transcript.splice(-2);
+  ask(lastText);
+}
+
+async function ask(override){
+  const text=(typeof override==="string"?override:$("q").value).trim();
+  if(!text||busy||!needAI())return;
+  showView("chat");
+  busy=true;lastText=text;
+  const send=$("send");send.textContent="Stop";send.classList.add("stop");
+  $("q").value="";autosize();
+  if(!history.length&&!msgEls.length)$("wrap").innerHTML="";
+  // remove old action rows' regenerate + follow chips
+  document.querySelectorAll(".follow").forEach(f=>f.remove());
+  document.querySelectorAll(".actions button").forEach(b=>{if(b.textContent.includes("Regenerate"))b.remove()});
+  const user=addMsg("user");user.b.textContent=text;
+  const bot=addMsg("bot");const {m,b}=bot;
+  if(redFlag(text)){
+    const a=document.createElement("div");a.className="alert";
+    a.textContent="If this is happening now or could be life-threatening, contact local emergency services immediately. If you're thinking about harming yourself, please reach out to a crisis line or someone you trust right now.";
+    m.insertBefore(a,b);
+  }
+  b.innerHTML='<span class="typing"><i></i><i></i><i></i></span>';
+
+  const prevUser=[...history].reverse().find(h=>h.role==="user");
+  const rq=(text.split(/\s+/).length<5&&prevUser)?prevUser.content+" "+text:text;
+  const hits=retrieve(rq,4);
+  const ctx=hits.length?hits.map((h,i)=>`[${i+1}] (${h.c.docTitle})\n${h.c.text}`).join("\n\n"):"(no relevant passages found)";
+  const detail={simple:"Use very simple words and short sentences (about a 6th-grade reading level). Keep it under about 120 words.",standard:"Be concise and clear.",detailed:"Give a thorough explanation with short sections or bullets."}[prefs.detail];
+  const prompt=`You are MediBot, a careful medical information assistant. Answer the user's question using ONLY the numbered context passages below.
+Rules:
+- If the context does not contain the answer, say you don't have that in your knowledge base and suggest speaking to a doctor or pharmacist. Do not invent facts.
+- Do not diagnose or prescribe. Give general educational information in plain language.
+- Cite supporting passages inline like [1] or [2].
+- Say clearly when symptoms warrant urgent or emergency care, if the context says so.
+- ${detail}
+- ${prefs.lang==="English"?"Reply in English.":"Reply entirely in "+prefs.lang+"."}
+- After the answer, add one final line in exactly this format (same language as the answer): FOLLOWUPS: first short follow-up question | second | third. Never mention this line.
+
+CONTEXT:
+${ctx}
+
+QUESTION: ${text}`;
+  const turns=[...history.slice(-6),{role:"user",content:prompt}];
+  ctl=new AbortController();
+  let partial="";
+  try{
+    const res=await sample(turns,{cache:false,signal:ctl.signal,onText:({text:t})=>{partial=t;b.innerHTML=md(splitFollow(t).body);scrollDown()}});
+    finishBot(res.text);
+  }catch(err){
+    if(err&&err.code==="cancelled"){
+      const p=splitFollow(err.text||partial).body;
+      if(p){b.innerHTML=md(p)+'<p class="hint">(stopped)</p>';history.push({role:"user",content:text},{role:"assistant",content:p});transcript.push({role:"You",content:text},{role:"MediBot",content:p});msgEls.push({user:user.m,bot});makeActions(bot,p,true)}
+      else{user.m.remove();m.remove()}
+    }else{
+      const p=splitFollow((err&&err.text)||partial).body;
+      b.innerHTML=(p?md(p):"")+`<p class="hint">${esc(aiError(err))}</p>`;
+      msgEls.push({user:user.m,bot});
+    }
+  }
+  function finishBot(full){
+    const {body,follow}=splitFollow(full);
+    b.innerHTML=md(body);
+    history.push({role:"user",content:text},{role:"assistant",content:body});
+    transcript.push({role:"You",content:text},{role:"MediBot",content:body});
+    msgEls.push({user:user.m,bot});
+    if(hits.length){
+      const d=document.createElement("details");d.className="src";
+      const s=document.createElement("summary");s.textContent="Sources ("+hits.length+")";d.append(s);
+      hits.forEach((h,i)=>{
+        const it=document.createElement("div");it.className="srcitem";
+        const t=document.createElement("b");t.textContent="["+(i+1)+"] "+h.c.docTitle;
+        const p=document.createElement("span");p.textContent=h.c.text.length>260?h.c.text.slice(0,260)+"…":h.c.text;
+        it.append(t,p);d.append(it);
+      });
+      m.append(d);
+    }
+    makeActions(bot,body,true);
+    if(follow.length){
+      const f=document.createElement("div");f.className="follow";
+      follow.forEach(q=>{const x=document.createElement("button");x.textContent=q;x.onclick=()=>ask(q);f.append(x)});
+      m.append(f);
+    }
+  }
+  busy=false;ctl=null;send.textContent="Send";send.classList.remove("stop");scrollDown();$("q").focus();
+}
+function autosize(){const t=$("q");t.style.height="auto";t.style.height=Math.min(t.scrollHeight,140)+"px"}
+$("q").addEventListener("input",autosize);
+$("q").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();if(!busy)ask()}});
+$("send").onclick=()=>{if(busy&&ctl)ctl.abort();else ask()};
+$("clear").onclick=()=>{if(busy)return;history=[];transcript=[];lastText="";hero()};
+$("exportChat").onclick=()=>{
+  if(!transcript.length){toast("Nothing to export yet");return}
+  const txt="MediBot chat transcript\n"+new Date().toLocaleString()+"\n\n"+transcript.map(t=>t.role+": "+t.content).join("\n\n")+"\n\nGeneral information only. Not medical advice.";
+  saveFile("medibot-chat.txt",txt);
+};
+// Voice input
+(function(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR)return;
+  const mic=$("mic");mic.hidden=false;let rec=null;
+  mic.onclick=()=>{
+    if(rec){rec.stop();return}
+    try{
+      rec=new SR();rec.lang=langCode();rec.interimResults=true;rec.continuous=false;
+      rec.onresult=e=>{$("q").value=[...e.results].map(r=>r[0].transcript).join(" ");autosize()};
+      rec.onerror=e=>{toast(e.error==="not-allowed"||e.error==="service-not-allowed"?"Microphone access isn't allowed here":"Voice input stopped")};
+      rec.onend=()=>{mic.classList.remove("rec");rec=null};
+      rec.start();mic.classList.add("rec");
+    }catch(e){toast("Voice input isn't available here");rec=null}
+  };
+})();
+
+/* ============ SYMPTOM CHECKER ============ */
+const SYMS=[
+ ["fever","Fever","🌡️"],["cough","Cough","😷"],["sore throat","Sore throat","🗣️"],["runny or blocked nose","Runny / blocked nose","🤧"],
+ ["headache","Headache","🤕"],["body aches","Body aches","💪"],["fatigue","Tiredness / fatigue","😴"],["nausea","Nausea","🤢"],
+ ["vomiting","Vomiting","🤮"],["diarrhea","Diarrhea","🚽"],["abdominal pain","Stomach pain","🫄"],["burning when urinating","Burning when urinating","🔥"],
+ ["frequent urination","Frequent urination","💧"],["increased thirst","Increased thirst","🥤"],["dizziness","Dizziness","😵"],["pale skin and weakness","Pale skin / weakness","🩸"],
+ ["skin rash or hives","Rash / hives","🔴"],["joint or muscle pain","Joint / muscle pain","🦴"],["wheezing or chest tightness","Wheezing / tight chest","🫁"],["low mood or loss of interest","Low mood","😔"],
+ ["chest pain or pressure","Chest pain / pressure","❤️",1],["severe difficulty breathing","Severe trouble breathing","🚨",1],
+ ["face drooping, arm weakness or slurred speech","Face droop / arm weakness / slurred speech","🧠",1],["confusion or fainting","Confusion / fainting","⚠️",1],
+ ["blood in vomit or stool","Blood in vomit / stool","🩸",1],["swelling of face or throat","Swelling of face / throat","⚠️",1],["stiff neck with fever","Stiff neck with fever","⚠️",1]
+].map(([id,label,icon,red])=>({id,label,icon,red:!!red}));
+const sel=new Set();
+function renderSyms(){
+  const box=$("symBox");box.innerHTML="";
+  SYMS.forEach(s=>{
+    const b=document.createElement("button");b.className="sym"+(s.red?" red":"")+(sel.has(s.id)?" on":"");
+    b.textContent=s.icon+" "+s.label;b.title=s.red?"Warning sign":"";
+    b.onclick=()=>{sel.has(s.id)?sel.delete(s.id):sel.add(s.id);b.classList.toggle("on");updChk()};
+    box.append(b);
+  });
+}
+function updChk(){
+  $("chkCount").textContent=sel.size?sel.size+" selected":"";
+}
+$("chkSev").oninput=()=>$("sevVal").textContent=$("chkSev").value;
+$("chkReset").onclick=()=>{sel.clear();$("chkNote").value="";$("chkSev").value=4;$("sevVal").textContent=4;$("chkOut").innerHTML="";renderSyms();updChk()};
+const URG=["self_care","soon","urgent","emergency"];
+const URG_TXT={
+  emergency:["🚨 Seek emergency care now","Call your local emergency number or go to the nearest emergency department."],
+  urgent:["⚠️ Get medical care today","Contact a doctor or urgent-care service within the next 24 hours."],
+  soon:["📅 See a doctor in the next few days","Book an appointment, and seek care sooner if things get worse."],
+  self_care:["🏠 Likely manageable at home","Rest, fluids and monitoring may be enough. See a doctor if it lasts or worsens."]
+};
+let lastCheck=null;
+$("chkGo").onclick=async()=>{
+  const symptoms=SYMS.filter(s=>sel.has(s.id));
+  const note=$("chkNote").value.trim();
+  if(!symptoms.length&&!note){toast("Pick at least one symptom or describe it");return}
+  if(!needAI())return;
+  const sev=+$("chkSev").value,age=$("chkAge").value,dur=$("chkDur").value;
+  const hasRed=symptoms.some(s=>s.red);
+  let floor=hasRed?"emergency":sev>=9?"urgent":(/week|4/.test(dur)?"soon":"self_care");
+  const out=$("chkOut");
+  out.innerHTML='<div class="card"><b>Analyzing…</b><div class="skeleton"></div><div class="skeleton" style="width:80%"></div><div class="skeleton" style="width:60%"></div></div>';
+  $("chkGo").disabled=true;
+  const q=symptoms.map(s=>s.id).join(" ")+" "+note;
+  const hits=retrieve(q,5);
+  const ctx=hits.length?hits.map((h,i)=>`[${i+1}] (${h.c.docTitle})\n${h.c.text}`).join("\n\n"):"(no relevant passages found)";
+  const prompt=`You are a health-education triage assistant. Given the user's symptoms and the numbered knowledge-base passages, produce guidance. You are NOT diagnosing.
+Patient info: age group: ${age}; duration: ${dur}; overall severity: ${sev}/10.
+Symptoms: ${symptoms.map(s=>s.id).join("; ")||"none selected"}.
+Extra details: ${note||"none"}.
+${hasRed?"IMPORTANT: the user selected a warning-sign symptom. Urgency must be at least 'emergency'.\n":""}
+CONTEXT:
+${ctx}
+
+Rules:
+- List possible_conditions ONLY if supported by the context passages (set "source" to the passage number). Max 4. If nothing fits, return an empty array.
+- Choose urgency conservatively: one of "emergency","urgent","soon","self_care".
+- Keep every string short, plain, and practical. ${langLine()}
+Reply with only JSON in exactly this shape:
+{"urgency":"soon","headline":"one sentence summary","possible_conditions":[{"name":"","likelihood":"low|medium|high","reason":"","source":1}],"self_care":["..."],"see_doctor_if":["..."],"questions_for_doctor":["..."]}`;
+  try{
+    const r=await sample.json(prompt,{cache:false});
+    lastCheck={symptoms,sev,r};
+    renderCheck(r,floor,symptoms,sev,hits);
+  }catch(e){
+    out.innerHTML=`<div class="card"><b>Couldn't complete the check.</b><p class="hint">${esc(aiError(e))}</p>${hasRed?'<div class="urg emergency">🚨 Because you selected a warning-sign symptom, please seek emergency care now.</div>':""}</div>`;
+  }
+  $("chkGo").disabled=false;
+};
+function renderCheck(r,floor,symptoms,sev,hits){
+  let u=URG.includes(r.urgency)?r.urgency:"soon";
+  if(URG.indexOf(floor)>URG.indexOf(u))u=floor;
+  const [h1,h2]=URG_TXT[u];
+  const arr=x=>Array.isArray(x)?x.filter(v=>typeof v==="string"&&v.trim()):[];
+  const conds=Array.isArray(r.possible_conditions)?r.possible_conditions.filter(c=>c&&c.name).slice(0,4):[];
+  const out=$("chkOut");out.innerHTML="";
+  const card=document.createElement("div");card.className="card";
+  let html=`<div class="urg ${u}">${esc(h1)}<small>${esc(h2)}</small></div>`;
+  if(r.headline)html+=`<p style="margin:0 0 10px"><b>${esc(r.headline)}</b></p>`;
+  html+=`<h3>Possible causes</h3>`;
+  if(conds.length){
+    html+=conds.map((c,i)=>{
+      const lk=["low","medium","high"].includes(c.likelihood)?c.likelihood:"low";
+      const cls=lk==="high"?"warn":lk==="medium"?"info":"ok";
+      const src=Number.isInteger(c.source)&&hits[c.source-1]?` <span class="cite">${c.source}</span>`:"";
+      return `<div class="cond"><div class="h"><b>${esc(c.name)}${src}</b><span class="pill ${cls}">${lk} match</span></div><p>${esc(c.reason||"")}</p><div class="btns" style="margin-top:6px"><button class="btn ghost sm" data-learn="${i}">Learn more in chat</button></div></div>`;
+    }).join("");
+  }else html+=`<p class="hint">Nothing in the knowledge base clearly matches these symptoms. A clinician can assess them properly.</p>`;
+  const sc=arr(r.self_care),sd=arr(r.see_doctor_if),qd=arr(r.questions_for_doctor);
+  if(sc.length)html+=`<h3 style="margin-top:12px">What you can do</h3><ul class="list">${sc.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`;
+  if(sd.length)html+=`<h3>Get medical help if…</h3><ul class="list">${sd.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`;
+  if(qd.length)html+=`<h3>Questions to ask your doctor</h3><ul class="list">${qd.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`;
+  html+=`<div class="btns"><button class="btn" id="chkChat">💬 Discuss in chat</button><button class="btn ghost" id="chkLog">📓 Add to health log</button><button class="btn ghost" id="chkCopy">📋 Copy result</button></div><div class="note">General guidance from a limited knowledge base. Not a diagnosis. If you're worried, trust your instinct and seek care.</div>`;
+  card.innerHTML=html;out.append(card);
+  card.querySelectorAll("[data-learn]").forEach(b=>b.onclick=()=>ask("Tell me about "+conds[+b.dataset.learn].name+": symptoms, treatment and when to see a doctor."));
+  $("chkChat").onclick=()=>ask(`I have ${symptoms.map(s=>s.id).join(", ")} (severity ${sev}/10). What should I know and what should I do?`);
+  $("chkLog").onclick=()=>{symptoms.forEach(s=>log.push({id:"l"+Date.now()+Math.random(),ts:Date.now(),item:s.label.replace(/ \/ .*/,""),sev,note:"From symptom check"}));saveLog();toast("Added "+symptoms.length+" entries to your health log")};
+  $("chkCopy").onclick=()=>copyText([h1,h2,r.headline||"","","Possible causes: "+(conds.map(c=>c.name).join(", ")||"none matched"),"","What you can do:",...sc.map(x=>"- "+x),"","Get help if:",...sd.map(x=>"- "+x)].join("\n"));
+  card.scrollIntoView({behavior:"smooth",block:"start"});
+}
+
+/* ============ HEALTH TOOLS ============ */
+// BMI
+let bmiU="m";
+document.querySelectorAll("#bmiUnit button").forEach(b=>b.onclick=()=>{
+  bmiU=b.dataset.u;document.querySelectorAll("#bmiUnit button").forEach(x=>x.classList.toggle("on",x===b));
+  $("bmiM").hidden=bmiU!=="m";$("bmiI").hidden=bmiU!=="i";calcBmi();
+});
+function calcBmi(){
+  let h,w;
+  if(bmiU==="m"){h=+$("bmiCm").value/100;w=+$("bmiKg").value}
+  else{h=((+$("bmiFt").value)*12+(+$("bmiIn").value))*0.0254;w=(+$("bmiLb").value)*0.45359237}
+  const o=$("bmiOut");
+  if(!(h>0.5&&w>5)){o.hidden=true;return}
+  const bmi=w/(h*h);
+  const [cat,cls]=bmi<18.5?["Underweight","info"]:bmi<25?["Healthy weight","ok"]:bmi<30?["Overweight","warn"]:["Obesity range","bad"];
+  const pos=Math.max(0,Math.min(100,(bmi-15)/25*100));
+  const lo=18.5*h*h,hi=24.9*h*h;
+  const rng=bmiU==="m"?`${lo.toFixed(1)}–${hi.toFixed(1)} kg`:`${(lo/0.45359237).toFixed(0)}–${(hi/0.45359237).toFixed(0)} lb`;
+  o.hidden=false;
+  o.innerHTML=`<div class="big">${bmi.toFixed(1)} <span class="pill ${cls}" style="vertical-align:middle">${cat}</span></div><div class="gauge"><i style="left:${pos}%"></i></div><div class="hint">Healthy range for your height: <b>${rng}</b></div><div class="note">BMI is a screening tool. It doesn't account for muscle, age or ethnicity (some guidelines use lower cut-offs for South Asian adults). Talk to a clinician about your weight.</div>`;
+}
+["bmiCm","bmiKg","bmiFt","bmiIn","bmiLb"].forEach(id=>$(id).oninput=calcBmi);
+// Blood pressure
+function calcBp(){
+  const s=+$("bpS").value,d=+$("bpD").value,o=$("bpOut");
+  if(!(s>0&&d>0)){o.hidden=true;return}
+  let cat,cls,tip;
+  if(s>180||d>120){cat="Hypertensive crisis range";cls="bad";tip="Rest and re-check after 5 minutes. If still this high, contact a doctor right away. With chest pain, breathlessness, weakness, vision or speech changes, call emergency services."}
+  else if(s>=140||d>=90){cat="High blood pressure (Stage 2)";cls="bad";tip="See a doctor soon to confirm and discuss treatment."}
+  else if(s>=130||d>=80){cat="High blood pressure (Stage 1)";cls="warn";tip="Lifestyle changes matter. Have it checked by a doctor to confirm over several readings."}
+  else if(s>=120){cat="Elevated";cls="info";tip="Watch salt, weight, activity and re-check regularly."}
+  else if(s<90||d<60){cat="Low reading";cls="info";tip="Low readings are fine without symptoms. If you feel dizzy or faint, seek medical advice."}
+  else{cat="Normal";cls="ok";tip="Keep up healthy habits and check periodically."}
+  o.hidden=false;o.innerHTML=`<div class="big">${s}/${d}</div><span class="pill ${cls}">${cat}</span><p class="hint" style="margin:8px 0 0">${tip}</p><div class="note">Ranges follow common adult guidelines. One reading isn't a diagnosis; measure seated, rested, on several days.</div>`;
+}
+["bpS","bpD"].forEach(id=>$(id).oninput=calcBp);
+// Water
+const todayKey=()=>new Date().toISOString().slice(0,10);
+let water=store.get("medibot_water",{d:todayKey(),n:0,w:"",u:"kg"});
+if(water.d!==todayKey())water={...water,d:todayKey(),n:0};
+let goalGlasses=8;
+function calcWater(){
+  let w=+$("wtW").value;if($("wtU").value==="lb")w*=0.45359237;
+  water.w=$("wtW").value;water.u=$("wtU").value;
+  const o=$("wtOut");
+  if(!(w>5)){o.textContent="Enter your weight to get a daily goal.";goalGlasses=8}
+  else{
+    const ml=Math.round((w*33+ +$("wtA").value+ +$("wtH").value)/50)*50;
+    goalGlasses=Math.max(4,Math.min(20,Math.round(ml/250)));
+    o.innerHTML=`Suggested goal: <b>${(ml/1000).toFixed(2)} L</b> (about ${goalGlasses} glasses of 250 ml)`;
+  }
+  store.set("medibot_water",water);drawGlasses();
+}
+function drawGlasses(){
+  const g=$("glasses");g.innerHTML="";
+  for(let i=0;i<goalGlasses;i++){
+    const b=document.createElement("button");b.className="glass"+(i<water.n?" on":"");b.title="Glass "+(i+1);
+    b.onclick=()=>{water.n=(water.n===i+1)?i:i+1;store.set("medibot_water",water);drawGlasses()};
+    g.append(b);
+  }
+  $("wtBar").style.width=Math.min(100,water.n/goalGlasses*100)+"%";
+}
+$("wtW").value=water.w||"";$("wtU").value=water.u||"kg";
+["wtW","wtU","wtA","wtH"].forEach(id=>$(id).oninput=calcWater);
+calcWater();
+// Heart rate
+$("hrAge").oninput=()=>{
+  const a=+$("hrAge").value,o=$("hrOut");
+  if(!(a>=5&&a<=110)){o.innerHTML="";return}
+  const mx=220-a,z=(l,h)=>Math.round(mx*l)+"–"+Math.round(mx*h);
+  o.innerHTML=`<p class="hint" style="margin:8px 0 0">Estimated max heart rate: <b>${mx} bpm</b></p><table class="zones"><tr><th>Zone</th><th>Intensity</th><th>bpm</th></tr><tr><td>Light</td><td>50–60%</td><td>${z(.5,.6)}</td></tr><tr><td>Moderate</td><td>60–70%</td><td>${z(.6,.7)}</td></tr><tr><td>Vigorous</td><td>70–85%</td><td>${z(.7,.85)}</td></tr></table><div class="note">The 220 − age formula is a rough estimate.</div>`;
+};
+let taps=[],tapT=null;
+$("tapBtn").onclick=()=>{
+  const now=performance.now();
+  if(!taps.length){
+    $("tapOut").textContent="Counting… keep tapping";
+    tapT=setTimeout(()=>{
+      const bpm=taps.length*4;
+      const c=bpm>=60&&bpm<=100?"normal resting range for most adults":bpm<60?"below 60 (can be normal for fit people)":"above 100 (can be normal after activity or stress)";
+      $("tapOut").innerHTML=`<b style="font-size:20px">≈ ${bpm} bpm</b> (${taps.length} taps × 4), ${c}. Rest for 5 minutes before measuring.`;
+      taps=[];$("tapBtn").textContent="Tap on each beat";
+    },15000);
+  }
+  taps.push(now);$("tapBtn").textContent=taps.length+" beats";
+};
+// Breathing
+let brTimer=null,brRun=false;
+function stopBreath(){brRun=false;clearTimeout(brTimer);$("brGo").textContent="Start";const c=$("brCircle");c.style.transitionDuration="0.4s";c.style.transform="scale(.7)";$("brTxt").textContent="Ready";$("brInfo").innerHTML="&nbsp;"}
+$("brGo").onclick=()=>{
+  if(brRun){stopBreath();return}
+  brRun=true;$("brGo").textContent="Stop";
+  const [a,b,c,d]=$("brPat").value.split(",").map(Number);
+  const phases=[["Breathe in",a,1],["Hold",b,1],["Breathe out",c,.7],["Hold",d,.7]].filter(p=>p[1]>0);
+  let i=0,cycles=0;
+  const step=()=>{
+    if(!brRun)return;
+    const [name,sec,scale]=phases[i];
+    const circ=$("brCircle");circ.style.transitionDuration=(name.includes("Hold")?0.2:sec)+"s";
+    if(!name.includes("Hold"))circ.style.transform="scale("+(name==="Breathe in"?1.15:.7)+")";
+    $("brTxt").textContent=name;
+    let left=sec;$("brInfo").textContent=left+"s · cycle "+(cycles+1);
+    const tick=()=>{
+      if(!brRun)return;
+      left--;
+      if(left>0){$("brInfo").textContent=left+"s · cycle "+(cycles+1);brTimer=setTimeout(tick,1000)}
+      else{i++;if(i>=phases.length){i=0;cycles++}step()}
+    };
+    brTimer=setTimeout(tick,1000);
+  };
+  step();
+};
+$("brPat").onchange=()=>{if(brRun)stopBreath()};
+// Medicine label reader
+let medFile=null;
+$("medFile").onchange=e=>{
+  medFile=e.target.files[0]||null;
+  const p=$("medPrev");
+  if(medFile){p.src=URL.createObjectURL(medFile);p.hidden=false}else p.hidden=true;
+  $("medGo").disabled=!medFile;
+};
+$("medGo").onclick=async()=>{
+  if(!medFile||!needAI())return;
+  const o=$("medOut");o.hidden=false;o.dir="auto";o.innerHTML='<span class="typing"><i></i><i></i><i></i></span>';
+  $("medGo").disabled=true;
+  try{
+    const res=await sample(`This is a photo of a medicine package, strip or label. Read the text you can see and explain it in plain language, using these short headings in bold: **What it is**, **Used for**, **How it's directed on the label**, **Main warnings**, **Ask a pharmacist about**. Only report what is legible in the image; if you can't read something or the image isn't a medicine, say so. Do not give personal dosing advice beyond what is printed. Keep it under 200 words. ${langLine()}`,{images:medFile,cache:false,onText:({text})=>{o.innerHTML=md(text)}});
+    o.innerHTML=md(res.text);
+  }catch(e){o.textContent=e&&e.code==="image_rejected"?"That image couldn't be used. Try a clearer JPG or PNG.":aiError(e)}
+  $("medGo").disabled=false;
+};
+
+/* ============ FIRST AID ============ */
+const AID=[
+{id:"cpr",t:"CPR (adult)",i:"❤️",crit:1,s:"Not breathing / unresponsive",warn:"Call your local emergency number first, or ask someone to. Put the phone on speaker.",metro:1,steps:[
+ "Check the scene is safe. Tap the person's shoulders and shout. If they don't respond and aren't breathing normally (or only gasping), act now.",
+ "Call emergency services, or have someone call. Ask a bystander to fetch an AED (defibrillator) if one is nearby.",
+ "Lay the person on their back on a firm surface. Kneel beside them. Place the heel of one hand on the centre of the chest (lower half of the breastbone), other hand on top, arms straight.",
+ "Push hard and fast: about 5–6 cm (2 inches) deep, 100–120 pushes a minute. Match the beat below. Let the chest rise fully between pushes.",
+ "Don't stop until help arrives, an AED is ready, or the person starts breathing normally. If you're trained, give 2 rescue breaths after every 30 pushes.",
+ "When an AED arrives, switch it on and follow its voice prompts. Attach the pads and let it analyse."]},
+{id:"choke",t:"Choking (adult)",i:"😮",crit:1,s:"Can't cough, speak or breathe",warn:"Babies under 1 year need a different technique. Call emergency services and follow the dispatcher's instructions.",steps:[
+ "Ask “Are you choking?” If they can cough, speak or breathe, encourage them to keep coughing.",
+ "If they can't: lean them forward and give up to 5 sharp back blows between the shoulder blades with the heel of your hand.",
+ "Still blocked? Give up to 5 abdominal thrusts: stand behind, make a fist just above the belly button, cover it with your other hand, and pull sharply inwards and upwards.",
+ "Alternate 5 back blows and 5 abdominal thrusts. Call emergency services if it isn't cleared quickly.",
+ "If the person becomes unresponsive, lower them to the ground, call emergency services and start CPR."]},
+{id:"bleed",t:"Severe bleeding",i:"🩸",crit:1,s:"Heavy or spurting blood",warn:"Call emergency services for heavy bleeding.",steps:[
+ "Protect yourself with gloves or a plastic bag if you have them. Have the person lie down.",
+ "Press firmly and directly on the wound with a clean cloth or bandage, using your body weight.",
+ "Don't remove soaked material. Add more layers on top and keep pressing.",
+ "If no broken bone is suspected, raise the injured limb above the heart while you keep pressing.",
+ "Keep the person warm and calm. Watch for pale, clammy skin or drowsiness (signs of shock) and stay until help arrives."]},
+{id:"heart",t:"Heart attack",i:"💔",crit:1,s:"Chest pain or pressure",warn:"Call emergency services immediately. Don't drive yourself.",steps:[
+ "Recognise it: chest pain or pressure that may spread to the arm, jaw or back, with breathlessness, cold sweat, nausea or light-headedness.",
+ "Call emergency services right away.",
+ "Help the person sit down and rest. Loosen tight clothing and keep them calm.",
+ "Only if the dispatcher or a doctor has advised it and they aren't allergic, they may chew one adult aspirin.",
+ "If they collapse and stop breathing normally, start CPR and use an AED if available."]},
+{id:"stroke",t:"Stroke (FAST)",i:"🧠",crit:1,s:"Face droop, weak arm, slurred speech",warn:"Every minute counts. Call emergency services even if symptoms pass.",steps:[
+ "Face: ask them to smile. Does one side of the face droop?",
+ "Arms: ask them to raise both arms. Does one drift downward?",
+ "Speech: is it slurred, confused or strange?",
+ "Time: call emergency services immediately. Note when symptoms started.",
+ "Keep them comfortable and stay with them. Don't give food, drink or medicines."]},
+{id:"ana",t:"Severe allergic reaction",i:"🐝",crit:1,s:"Swelling, wheeze, collapse",warn:"Call emergency services immediately.",steps:[
+ "Look for swelling of the face or throat, trouble breathing, wheezing, widespread hives, dizziness or collapse.",
+ "If they have an adrenaline (epinephrine) auto-injector, help them use it straight away, as shown on the device (usually the outer mid-thigh).",
+ "Call emergency services even if they seem better. Lay them flat with legs raised (sit them up if breathing is hard). Don't let them stand.",
+ "If there's no improvement after about 5 minutes and a second injector is available, follow its instructions for a second dose.",
+ "Be ready to start CPR if they stop breathing."]},
+{id:"burn",t:"Minor burns",i:"🔥",s:"Small, superficial burns",warn:"For large, deep, facial, chemical or electrical burns, or burns in young children, get emergency help.",steps:[
+ "Move away from the heat source. Remove rings, watches and tight clothing near the burn before swelling starts.",
+ "Cool the burn under cool running water for about 20 minutes.",
+ "Cover loosely with a clean, non-fluffy dressing or cling film.",
+ "Don't use ice, butter or toothpaste, and don't burst blisters.",
+ "Get medical help for burns larger than the person's palm, on the face, hands, feet, genitals or joints, or with deep, white or charred skin."]},
+{id:"nose",t:"Nosebleed",i:"👃",s:"Bleeding from the nose",warn:"Seek care if it lasts over 20 minutes, follows a head injury, or the person is on blood thinners.",steps:[
+ "Sit upright and lean slightly forward. Don't tilt the head back.",
+ "Pinch the soft part of the nose (just below the bony bridge) firmly.",
+ "Keep pinching for 10 minutes without letting go to check. Breathe through the mouth.",
+ "Avoid blowing or picking the nose for several hours afterwards."]},
+{id:"faint",t:"Fainting",i:"😵",s:"Person collapses briefly",warn:"If they don't wake within a minute, aren't breathing normally, or were injured, call emergency services.",steps:[
+ "Lay the person flat and raise their legs about 30 cm (12 in).",
+ "Loosen tight clothing and make sure they have fresh air.",
+ "Check that they're breathing normally. Most people wake within a minute.",
+ "When awake, keep them lying down for a while and help them up slowly. Offer water once they're alert.",
+ "Seek medical advice after a first faint, or if it happened with chest pain, palpitations or injury."]},
+{id:"sprain",t:"Sprain or strain",i:"🦶",s:"Twisted joint, swelling",warn:"Can't bear weight, deformity, or numbness? Get it checked. It may be a fracture.",steps:[
+ "Protect the injury from further harm and rest it.",
+ "Ice: apply a cold pack wrapped in cloth for 15–20 minutes, several times a day.",
+ "Compress with an elastic bandage. Snug but not tight.",
+ "Elevate the limb above heart level when resting.",
+ "See a clinician if there's no improvement after a few days."]}
+];
+const aidGrid=$("aidGrid");
+AID.forEach(a=>{
+  const b=document.createElement("button");b.className="aidcard"+(a.crit?" crit":"");
+  b.innerHTML=`<span class="ic">${a.i}</span><b>${esc(a.t)}</b><span>${esc(a.s)}</span>`;
+  b.onclick=()=>openAid(a.id);aidGrid.append(b);
+});
+let metro=null,metroCtx=null;
+function stopMetro(){if(metro){clearInterval(metro);metro=null}}
+function openAid(id){
+  const a=AID.find(x=>x.id===id);if(!a)return;
+  stopMetro();
+  let cur=0;
+  $("aidList").hidden=true;const d=$("aidDetail");d.hidden=false;d.innerHTML="";
+  const head=document.createElement("div");
+  head.innerHTML=`<button class="btn ghost sm" id="aidBack">← All guides</button><h2 style="margin:12px 0 8px">${a.i} ${esc(a.t)}</h2><div class="${a.crit?"urg emergency":"urg soon"}" style="font-size:14px">${esc(a.warn)}</div>`;
+  d.append(head);
+  if(a.metro){
+    const m=document.createElement("div");m.className="card";m.style.marginBottom="12px";
+    m.innerHTML=`<div class="beat" id="beat">PUSH</div><div style="text-align:center"><div class="btns" style="justify-content:center;margin:0"><button class="btn" id="metroGo">▶ Start 110 bpm beat</button><label class="hint" style="align-self:center"><input type="checkbox" id="metroSnd" checked> sound</label></div><div class="note">Target: 100–120 pushes per minute, about 5–6 cm deep.</div></div>`;
+    d.append(m);
+  }
+  const list=document.createElement("div");d.append(list);
+  const nav=document.createElement("div");nav.className="btns";
+  nav.innerHTML=`<button class="btn ghost" id="aidPrev">← Previous</button><button class="btn" id="aidNext">Next step →</button><button class="btn ghost" id="aidAsk">💬 Ask MediBot</button>`;
+  d.append(nav);
+  const note=document.createElement("div");note.className="note";note.textContent="First-aid guidance for general information. It doesn't replace training or professional care.";d.append(note);
+  function draw(){
+    list.innerHTML="";
+    a.steps.forEach((s,i)=>{
+      const e=document.createElement("div");e.className="step"+(i===cur?" active":i<cur?" done":"");
+      e.innerHTML=`<div class="num">${i<cur?"✓":i+1}</div><div>${esc(s)}</div>`;
+      e.onclick=()=>{cur=i;draw()};list.append(e);
+    });
+    $("aidPrev").disabled=cur===0;
+    $("aidNext").textContent=cur===a.steps.length-1?"✓ Done":"Next step →";
+  }
+  draw();
+  $("aidPrev").onclick=()=>{if(cur>0){cur--;draw()}};
+  $("aidNext").onclick=()=>{if(cur<a.steps.length-1){cur++;draw()}else{cur=a.steps.length;draw();toast("Stay with the person until help arrives")}};
+  $("aidAsk").onclick=()=>{stopMetro();ask("Tell me more about first aid for: "+a.t)};
+  $("aidBack").onclick=()=>{stopMetro();d.hidden=true;$("aidList").hidden=false};
+  if(a.metro){
+    $("metroGo").onclick=()=>{
+      if(metro){stopMetro();$("metroGo").textContent="▶ Start 110 bpm beat";return}
+      $("metroGo").textContent="■ Stop";
+      try{if(!metroCtx&&(window.AudioContext||window.webkitAudioContext))metroCtx=new (window.AudioContext||window.webkitAudioContext)()}catch(e){}
+      const tick=()=>{
+        const bt=$("beat");if(!bt){stopMetro();return}
+        bt.classList.add("pulse");setTimeout(()=>bt.classList.remove("pulse"),110);
+        if($("metroSnd")&&$("metroSnd").checked&&metroCtx){
+          try{const o=metroCtx.createOscillator(),g=metroCtx.createGain();o.frequency.value=880;g.gain.value=.18;o.connect(g);g.connect(metroCtx.destination);o.start();o.stop(metroCtx.currentTime+.06)}catch(e){}
+        }
+      };
+      tick();metro=setInterval(tick,60000/110);
+    };
+  }
+  $("v-aid").scrollTop=0;
+}
+
+/* ============ HEALTH LOG ============ */
+let log=store.get("medibot_log",[]);
+function saveLog(){store.set("medibot_log",log);if(!$("v-log").hidden)renderLog()}
+const sevColor=s=>s<=3?"#22a06b":s<=6?"#d99a00":s<=8?"#ea6a1f":"#d92d2d";
+$("lgSev").oninput=()=>$("lgVal").textContent=$("lgSev").value;
+$("lgAdd").onclick=()=>{
+  const item=$("lgItem").value.trim();
+  if(!item){toast("Enter what you're tracking");return}
+  log.push({id:"l"+Date.now()+Math.random(),ts:Date.now(),item,sev:+$("lgSev").value,note:$("lgNote").value.trim()});
+  $("lgNote").value="";saveLog();$("lgSel").value=item;renderLog();toast("Entry added");
+};
+function renderLog(){
+  const items=[...new Set(log.map(l=>l.item))];
+  $("lgItems").innerHTML=items.map(i=>`<option value="${esc(i)}">`).join("");
+  const sel=$("lgSel"),prev=sel.value;
+  sel.innerHTML=items.length?items.map(i=>`<option>${esc(i)}</option>`).join(""):"<option>No entries yet</option>";
+  if(items.includes(prev))sel.value=prev;else if(items.length)sel.value=[...log].sort((a,b)=>b.ts-a.ts)[0].item;
+  drawChart(sel.value);
+  const list=$("lgList");
+  if(!log.length){list.innerHTML='<p class="hint">No entries yet. Add your first one above.</p>';return}
+  list.innerHTML="";
+  [...log].sort((a,b)=>b.ts-a.ts).slice(0,60).forEach(l=>{
+    const e=document.createElement("div");e.className="entry";
+    e.innerHTML=`<div class="sev" style="background:${sevColor(l.sev)}">${l.sev}</div><div class="t"><b>${esc(l.item)}</b>${l.note?" · "+esc(l.note):""}<small>${new Date(l.ts).toLocaleString([], {dateStyle:"medium",timeStyle:"short"})}</small></div>`;
+    const x=document.createElement("button");x.textContent="🗑";x.title="Delete";x.onclick=()=>{log=log.filter(z=>z.id!==l.id);saveLog()};
+    e.append(x);list.append(e);
+  });
+}
+$("lgSel").onchange=()=>drawChart($("lgSel").value);
+function drawChart(item){
+  const box=$("lgChart");
+  const pts=log.filter(l=>l.item===item).sort((a,b)=>a.ts-b.ts).slice(-40);
+  if(!pts.length){box.innerHTML='<p class="hint">Add entries to see a trend.</p>';return}
+  const W=600,H=220,L=30,R=14,T=12,B=28;
+  const t0=pts[0].ts,t1=pts[pts.length-1].ts;
+  const x=(p,i)=>pts.length===1?(L+W-R)/2:(t1===t0?L+(W-L-R)*i/(pts.length-1):L+(W-L-R)*(p.ts-t0)/(t1-t0));
+  const y=v=>T+(H-T-B)*(1-(v-1)/9);
+  let s=`<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Trend for ${esc(item)}">`;
+  [1,5,10].forEach(v=>{s+=`<line class="gl" x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}"/><text x="${L-6}" y="${y(v)+4}" text-anchor="end">${v}</text>`});
+  s+=`<polyline class="ln" points="${pts.map((p,i)=>x(p,i)+","+y(p.sev)).join(" ")}"/>`;
+  pts.forEach((p,i)=>{s+=`<circle class="dot" cx="${x(p,i)}" cy="${y(p.sev)}" r="5"><title>${p.sev}/10 · ${esc(new Date(p.ts).toLocaleString())}${p.note?" · "+esc(p.note):""}</title></circle>`});
+  const fmt=t=>new Date(t).toLocaleDateString([], {month:"short",day:"numeric"});
+  s+=`<text x="${L}" y="${H-8}">${fmt(t0)}</text><text x="${W-R}" y="${H-8}" text-anchor="end">${fmt(t1)}</text></svg>`;
+  const avg=(pts.reduce((a,p)=>a+p.sev,0)/pts.length).toFixed(1);
+  const trend=pts.length>=4?(()=>{const h=Math.floor(pts.length/2);const a=pts.slice(0,h).reduce((s,p)=>s+p.sev,0)/h,b=pts.slice(-h).reduce((s,p)=>s+p.sev,0)/h;return b<a-0.5?"improving ↓":b>a+0.5?"worsening ↑":"steady →"})():"";
+  box.innerHTML=s+`<div class="hint">${pts.length} entries · average ${avg}/10${trend?" · trend: <b>"+trend+"</b>":""}</div>`;
+}
+$("lgCsv").onclick=()=>{
+  if(!log.length){toast("Nothing to export yet");return}
+  const q=v=>'"'+String(v).replace(/"/g,'""')+'"';
+  const csv="date,item,severity,note\n"+[...log].sort((a,b)=>a.ts-b.ts).map(l=>[new Date(l.ts).toISOString(),q(l.item),l.sev,q(l.note||"")].join(",")).join("\n");
+  saveFile("medibot-health-log.csv",csv);
+};
+let lastSummary="";
+$("lgSum").onclick=async()=>{
+  if(!log.length){toast("Add some entries first");return}
+  if(!needAI())return;
+  const rows=[...log].sort((a,b)=>a.ts-b.ts).slice(-120).map(l=>`${new Date(l.ts).toISOString().slice(0,16).replace("T"," ")} | ${l.item} | ${l.sev}/10 | ${l.note||""}`).join("\n");
+  const box=$("lgSumBox"),out=$("lgSumOut");box.hidden=false;out.innerHTML='<span class="typing"><i></i><i></i><i></i></span>';
+  $("lgSum").disabled=true;
+  try{
+    const res=await sample(`Below is a patient's self-tracked health log (date | item | severity 0-10 | note). Write a brief, factual summary they can hand to a doctor: 1) what was tracked and over what period, 2) patterns, trends and any triggers mentioned in notes, 3) worst episodes, 4) 3 useful questions to ask the doctor. Use short bullets under bold headings. Report only what's in the data. Do NOT diagnose or suggest medicines. Under 220 words. ${langLine()}\n\n${rows}`,{cache:false,onText:({text})=>{out.innerHTML=md(text)}});
+    lastSummary=res.text;out.innerHTML=md(res.text);
+  }catch(e){out.textContent=aiError(e)}
+  $("lgSum").disabled=false;
+};
+$("lgSumCopy").onclick=()=>lastSummary&&copyText(lastSummary);
+$("lgSumDl").onclick=()=>lastSummary&&saveFile("health-summary.txt","Health summary (self-tracked, for discussion with a clinician)\n"+new Date().toLocaleDateString()+"\n\n"+lastSummary.replace(/\*\*/g,""));
+
+/* ============ Boot ============ */
+applyTheme();rebuildIndex();hero();renderSyms();
+(async()=>{
+  try{if(window.claude&&window.claude.use)sample=await window.claude.use("sample")}catch(e){sample=null}
+  const st=$("status");st.textContent=sample?"AI ready":"AI unavailable";st.classList.toggle("ok",!!sample);
+  if(sample){try{const l=await sample.limits();if(l&&l.images){imgOK=true;$("medCard").hidden=false}}catch(e){}}
+})();
+(async()=>{try{if(window.claude&&window.claude.use)dl=await window.claude.use("downloads")}catch(e){dl=null}})();
+</script>
+</body>
+</html>
